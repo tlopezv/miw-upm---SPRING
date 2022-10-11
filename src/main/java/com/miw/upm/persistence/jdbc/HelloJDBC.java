@@ -28,6 +28,9 @@ public class HelloJDBC {
     private static String insert3 = "";
     private static String select = "";
 
+    private static String insertTrans1 = "";
+    private static String insertTrans2 = "";
+
     // https://sematext.com/blog/slf4j-tutorial/
     private static Logger log = LoggerFactory.getLogger(HelloJDBC.class);
 
@@ -58,6 +61,9 @@ public class HelloJDBC {
             insert2 = prop.getProperty("db.insert.2");
             insert3 = prop.getProperty("db.insert.3");
             select = prop.getProperty("db.select");
+
+            insertTrans1 = prop.getProperty("db.insert.transc.1");
+            insertTrans2 = prop.getProperty("db.insert.transc.2");
 
         } catch (IOException e) {
             log.error("No se puedieron cargar las propiedades ", e);
@@ -180,6 +186,63 @@ public class HelloJDBC {
             log.error("Fallo al utilizar la Base de datos 'jee' ", e);
         } finally {
             try {
+                if (sentencia != null && !sentencia.isClosed()) {
+                    sentencia.close();
+                }
+                if (conexion != null && !conexion.isClosed()) {
+                    conexion.close();
+                }
+            } catch (SQLException e) {
+                log.error(e.getMessage());
+            }
+
+        }
+    }
+
+    public void transaccionDBjee() {
+        String mensaje = null;
+
+        try {
+
+            // Creamos la tabla NOTA: puede devolver false
+            this.ejecutarSentenciaNoSelect(createTable);
+
+            // iniciamos la transacción
+            this.conexion.setAutoCommit(false);
+
+            log.info("Transacción....");
+
+            if (!this.ejecutarSentenciaNoSelect(insertTrans1)) {
+                mensaje = "Fallo al hacer el insert: " + insertTrans1;
+                log.error(mensaje);
+                throw new Exception(mensaje);
+            }
+
+            if (!this.ejecutarSentenciaNoSelect(insertTrans2)) {
+                mensaje = "Fallo al hacer el insert: " + insertTrans2;
+                log.error(mensaje);
+                throw new Exception(mensaje);
+            }
+
+            // Si se llega a este punto finalizamos la transacción confirmando los cambios
+            // en BBDD;
+            this.conexion.commit();
+
+        } catch (Exception e) {
+            log.error("Fallo al utilizar la Base de datos 'jee' ", e);
+
+            // Si hay problemas deshacemos la transacción.
+            try {
+                this.conexion.setAutoCommit(false);
+                this.conexion.rollback();
+                log.error("Deshaciendo la transacción por ROLLBACK.");
+            } catch (SQLException e1) {
+                log.error("ERROR en el ROLLBACK: ", e1);
+            }
+
+        } finally {
+            try {
+                this.conexion.setAutoCommit(true);
                 if (sentencia != null && !sentencia.isClosed()) {
                     sentencia.close();
                 }

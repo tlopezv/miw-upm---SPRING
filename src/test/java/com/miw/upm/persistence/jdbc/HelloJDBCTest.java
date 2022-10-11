@@ -11,4 +11,10 @@ public class HelloJDBCTest {
         new HelloJDBC().consumirDBjee();
         assertTrue(true);
     }
+
+    @Test
+    public void transaccionDBjeeTest() {
+        new HelloJDBC().transaccionDBjee();
+        assertTrue(true);
+    }
 }
